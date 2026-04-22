@@ -751,7 +751,7 @@ function renderPainel() {
 
 function listaHTML(ordens) {
   return ordens.map(o => {
-    const pp = o.parcelas||[];
+    const pp = [...(o.parcelas||[])].sort((a,b)=>a.numero-b.numero);
     const late = pp.some(p=>!p.pago && atrasado(p.vencimento));
     const allPaid = pp.length>0 && pp.every(p=>p.pago);
     const cls = late?'late':allPaid?'paid':'';
@@ -772,7 +772,7 @@ function listaHTML(ordens) {
           </div>
           <div class="os-card-bottom">
             <div class="pills-row">
-              ${pp.map(p=>`<div class="pill ${p.pago?'paid':atrasado(p.vencimento)?'late':''}"></div>`).join('')}
+              ${[...pp].sort((a,b)=>a.numero-b.numero).map(p=>`<div class="pill ${p.pago?'paid':atrasado(p.vencimento)?'late':''}"></div>`).join('')}
               <span class="pill-label">${pp.filter(p=>p.pago).length}/${pp.length} PAGAS</span>
             </div>
             <span class="badge ${late?'badge-late':allPaid?'badge-paid':'badge-pend'}">${late?'ATRASADA':allPaid?'QUITADA':'ABERTA'}</span>
