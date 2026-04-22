@@ -166,16 +166,16 @@ main { padding: 16px; max-width: 860px; margin: 0 auto; }
 .os-card-stripe.paid { background: var(--green); }
 .os-card-inner { padding: 14px 16px; }
 .os-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
-.os-num { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #555; }
-.os-name { font-family: var(--display); font-size: 22px; letter-spacing: 0.5px; line-height: 1.1; }
+.os-num { font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--black); }
+.os-name { font-family: var(--display); font-size: 26px; letter-spacing: 0.5px; line-height: 1.1; }
 .os-desc-text { font-family: var(--mono); font-size: 11px; color: #555; margin-top: 3px; }
-.os-valor-big { font-family: var(--display); font-size: 26px; text-align: right; line-height: 1; }
+.os-valor-big { font-family: var(--display); font-size: 30px; text-align: right; line-height: 1; }
 .os-card-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 2px solid var(--black); }
 .pills-row { display: flex; gap: 3px; flex-wrap: wrap; align-items: center; }
-.pill { width: 18px; height: 10px; border: 2px solid var(--black); background: var(--cream); }
+.pill { width: 24px; height: 14px; border: 2px solid var(--black); background: var(--cream); }
 .pill.paid { background: var(--green); }
 .pill.late { background: var(--red); }
-.pill-label { font-family: var(--mono); font-size: 10px; margin-left: 4px; font-weight: 700; }
+.pill-label { font-family: var(--mono); font-size: 13px; margin-left: 6px; font-weight: 700; }
 
 /* ── SUMMARY ── */
 .summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
@@ -355,7 +355,7 @@ main { padding: 16px; max-width: 860px; margin: 0 auto; }
     <div class="modal-drag"></div>
     <div class="modal-head">
       <div>
-        <div style="font-family:var(--mono);font-size:10px;letter-spacing:1px;opacity:0.7" id="mNum"></div>
+        <div style="font-family:var(--mono);font-size:16px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.9)" id="mNum"></div>
         <h2 id="mTitle"></h2>
       </div>
       <button class="btn btn-sm" style="background:var(--orange);color:var(--white);border-color:var(--orange)" onclick="closeModal()">✕ FECHAR</button>
@@ -706,7 +706,10 @@ async function carregarOrdens() {
 
     if (error) throw new Error(error.message);
 
-    S.ordens = data || [];
+    S.ordens = (data || []).map(o => ({
+      ...o,
+      parcelas: [...(o.parcelas || [])].sort((a, b) => a.numero - b.numero)
+    }));
     updateStats();
     setSyncState('ok');
   } catch(err) {
@@ -876,6 +879,8 @@ async function toggleParcela(osId, parcelaId) {
 
   p.pago = novoPago;
   p.pago_em = pagoEm;
+  // Garantir ordem correta no cache local
+  o.parcelas = [...o.parcelas].sort((a, b) => a.numero - b.numero);
   updateStats(); setSyncState('ok');
   renderModalBody(o);
   toast(novoPago ? '✓ PARCELA PAGA' : 'PARCELA DESMARCADA');
