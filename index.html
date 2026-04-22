@@ -342,12 +342,12 @@ main { padding: 16px; max-width: 860px; margin: 0 auto; }
   </div>
 
   <div class="tabs">
-    <button class="tab active" id="tabNova" onclick="showTab('nova')">📄 NOVA OS</button>
-    <button class="tab" id="tabPainel" onclick="showTab('painel')">📊 PAINEL</button>
+    <button class="tab active" id="tabPainel" onclick="showTab('painel')">📊 PAINEL</button>
+    <button class="tab" id="tabNova" onclick="showTab('nova')">📄 NOVA OS</button>
   </div>
 
-  <div id="viewNova"></div>
-  <div id="viewPainel" style="display:none"></div>
+  <div id="viewPainel"></div>
+  <div id="viewNova" style="display:none"></div>
 </main>
 
 <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
@@ -621,21 +621,15 @@ function renderPreview() {
           <div class="field" style="grid-column:1/-1"><div class="field-label">Condição de pagamento</div><div class="field-value">${r.condicao_pagamento||'—'}</div></div>
         </div>
         <hr class="thick-rule"/>
-        <div class="section-title">${r.parcelas.length}X PARCELAS — CONFIRME OS VENCIMENTOS</div>
-        ${r.parcelas.map((p,i)=>`
-          <div class="parcela-row" style="flex-wrap:wrap;gap:8px">
+        <div class="section-title">${r.parcelas.length}X PARCELAS GERADAS</div>
+        ${r.parcelas.map(p=>`
+          <div class="parcela-row">
             <div class="parcela-num">${String(p.numero).padStart(2,'0')}</div>
             <div class="parcela-info">
               <div class="parcela-valor">${moeda(p.valor)}</div>
               <div class="parcela-desc">${p.label}</div>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;width:100%;padding-left:44px">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555">Vencimento:</span>
-              <input type="date" class="date-input" id="venc_${i}"
-                value="${isoDate(p.vencimento)}"
-                onchange="S.pending.parcelas[${i}].vencimento = brDate(this.value)"
-                style="font-family:var(--mono);font-size:13px;font-weight:700;border:2px solid var(--black);padding:4px 8px;background:var(--orange);color:var(--white);outline:none;cursor:pointer"/>
-            </div>
+            <span class="badge badge-pend">PENDENTE</span>
           </div>`).join('')}
         <div class="actions">
           <button class="btn btn-green" id="btnSalvar" onclick="salvarOS()">✓ SALVAR NO SUPABASE</button>
@@ -980,7 +974,7 @@ function brDate(iso) {
   } else {
     setSyncState('err');
   }
-  renderNova();
+  renderPainel();
   updateStats();
 })();
 </script>
