@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#f5f0e8"/>
+<meta name="description" content="Controle de Ordens de Serviço"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="OS Tracker"/>
+<title>OS TRACKER</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;700&family=Barlow:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<style>
+:root {
+  --cream: #f5f0e8;
+  --black: #0d0d0d;
+  --yellow: #f7e000;
+  --red: #e8261a;
+  --blue: #1a3fe8;
+  --green: #1db843;
+  --white: #ffffff;
+  --border: 3px solid var(--black);
+  --shadow: 4px 4px 0 var(--black);
+  --shadow-lg: 6px 6px 0 var(--black);
+  --shadow-xl: 8px 8px 0 var(--black);
+  --display: 'Bebas Neue', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+  --body: 'Barlow', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: var(--body);
+  background: var(--cream);
+  color: var(--black);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+}
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--cream); border-left: 2px solid var(--black); }
+::-webkit-scrollbar-thumb { background: var(--black); }
+
+/* ── HEADER ── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--yellow); border-bottom: var(--border);
+  padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-family: var(--display); font-size: 28px; letter-spacing: 2px; line-height: 1; }
+.logo-sub { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+.header-pills { display: flex; gap: 6px; }
+.h-pill {
+  border: var(--border); background: var(--white);
+  padding: 4px 10px; font-family: var(--mono); font-size: 11px; font-weight: 700;
+  box-shadow: var(--shadow); text-transform: uppercase;
+  display: flex; flex-direction: column; align-items: center; line-height: 1.2;
+}
+.h-pill span { font-size: 16px; font-weight: 700; line-height: 1; }
+
+/* ── LAYOUT ── */
+main { padding: 16px; max-width: 860px; margin: 0 auto; }
+
+/* ── TABS ── */
+.tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border: var(--border); margin-bottom: 20px; box-shadow: var(--shadow-lg);
+}
+.tab {
+  padding: 14px 8px; border: none; background: var(--white);
+  font-family: var(--display); font-size: 22px; letter-spacing: 1.5px;
+  cursor: pointer; transition: background 0.1s; border-right: var(--border);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.tab:last-child { border-right: none; }
+.tab.active { background: var(--black); color: var(--yellow); }
+.tab:hover:not(.active) { background: var(--cream); }
+
+/* ── CARDS ── */
+.card { border: var(--border); background: var(--white); box-shadow: var(--shadow-xl); margin-bottom: 16px; }
+.card-header {
+  background: var(--black); color: var(--yellow);
+  padding: 10px 16px; font-family: var(--display); font-size: 18px; letter-spacing: 1px;
+  display: flex; align-items: center; justify-content: space-between; border-bottom: var(--border);
+}
+.card-body { padding: 16px; }
+
+/* ── UPLOAD ── */
+.upload-zone {
+  border: 3px dashed var(--black); padding: 40px 20px;
+  text-align: center; cursor: pointer;
+  background: var(--cream); transition: background 0.15s; position: relative;
+}
+.upload-zone:hover, .upload-zone.drag { background: var(--yellow); }
+.upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.upload-icon { font-family: var(--display); font-size: 72px; line-height: 1; margin-bottom: 8px; display: block; }
+.upload-zone h2 { font-family: var(--display); font-size: 28px; letter-spacing: 1px; margin-bottom: 6px; }
+.upload-zone p { font-family: var(--mono); font-size: 12px; color: #555; }
+
+/* ── BUTTONS ── */
+.btn {
+  font-family: var(--display); letter-spacing: 1px;
+  border: var(--border); padding: 12px 20px; font-size: 18px;
+  cursor: pointer; background: var(--white); color: var(--black);
+  box-shadow: var(--shadow); transition: transform 0.08s, box-shadow 0.08s;
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.btn:active { transform: translate(4px,4px); box-shadow: none; }
+.btn-yellow { background: var(--yellow); }
+.btn-black { background: var(--black); color: var(--yellow); }
+.btn-red { background: var(--red); color: var(--white); }
+.btn-green { background: var(--green); color: var(--white); }
+.btn-blue { background: var(--blue); color: var(--white); }
+.btn-sm { font-size: 13px; padding: 8px 14px; font-family: var(--mono); font-weight: 700; letter-spacing: 0.5px; box-shadow: 3px 3px 0 var(--black); }
+.btn-sm:active { transform: translate(3px,3px); box-shadow: none; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: var(--shadow); }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+/* ── FIELDS ── */
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+@media(max-width:500px){ .field-grid { grid-template-columns: 1fr; } }
+.field { border: var(--border); padding: 10px 12px; background: var(--cream); }
+.field-label { font-family: var(--mono); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; color: #555; }
+.field-value { font-family: var(--mono); font-size: 14px; font-weight: 500; word-break: break-word; }
+.field-value.big { font-size: 20px; font-weight: 700; }
+
+/* ── PARCELAS ── */
+.parcela-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border: var(--border); margin-bottom: 6px;
+  background: var(--cream); box-shadow: 3px 3px 0 var(--black);
+}
+.parcela-num { font-family: var(--display); font-size: 28px; min-width: 36px; line-height: 1; }
+.parcela-info { flex: 1; }
+.parcela-valor { font-family: var(--mono); font-size: 16px; font-weight: 700; }
+.parcela-desc { font-family: var(--mono); font-size: 11px; color: #555; margin-top: 2px; }
+
+/* ── BADGES ── */
+.badge { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 4px 8px; border: 2px solid var(--black); text-transform: uppercase; letter-spacing: 0.5px; }
+.badge-pend { background: var(--yellow); color: var(--black); }
+.badge-paid { background: var(--green); color: var(--white); }
+.badge-late { background: var(--red); color: var(--white); }
+
+/* ── OS CARDS ── */
+.os-card {
+  border: var(--border); background: var(--white);
+  box-shadow: var(--shadow-xl); margin-bottom: 14px;
+  cursor: pointer; transition: transform 0.08s, box-shadow 0.08s;
+}
+.os-card:active { transform: translate(8px,8px); box-shadow: none; }
+.os-card-stripe { height: 8px; background: var(--black); border-bottom: var(--border); }
+.os-card-stripe.late { background: var(--red); }
+.os-card-stripe.paid { background: var(--green); }
+.os-card-inner { padding: 14px 16px; }
+.os-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.os-num { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #555; }
+.os-name { font-family: var(--display); font-size: 22px; letter-spacing: 0.5px; line-height: 1.1; }
+.os-desc-text { font-family: var(--mono); font-size: 11px; color: #555; margin-top: 3px; }
+.os-valor-big { font-family: var(--display); font-size: 26px; text-align: right; line-height: 1; }
+.os-card-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 2px solid var(--black); }
+.pills-row { display: flex; gap: 3px; flex-wrap: wrap; align-items: center; }
+.pill { width: 18px; height: 10px; border: 2px solid var(--black); background: var(--cream); }
+.pill.paid { background: var(--green); }
+.pill.late { background: var(--red); }
+.pill-label { font-family: var(--mono); font-size: 10px; margin-left: 4px; font-weight: 700; }
+
+/* ── SUMMARY ── */
+.summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+@media(max-width:460px){ .summary-grid { grid-template-columns: 1fr 1fr; } }
+.summary-card { border: var(--border); box-shadow: var(--shadow); padding: 12px 14px; }
+.summary-card:nth-child(1) { background: var(--yellow); }
+.summary-card:nth-child(2) { background: var(--red); color: var(--white); }
+.summary-card:nth-child(3) { background: var(--green); color: var(--white); }
+.s-label { font-family: var(--mono); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; opacity: 0.8; }
+.s-value { font-family: var(--display); font-size: 32px; line-height: 1; }
+
+/* ── SEARCH ── */
+.search-wrap { position: relative; margin-bottom: 16px; }
+.search-input {
+  width: 100%; padding: 12px 14px 12px 44px;
+  border: var(--border); font-family: var(--mono); font-size: 14px;
+  background: var(--white); box-shadow: var(--shadow); outline: none; color: var(--black);
+}
+.search-input:focus { background: var(--yellow); }
+.search-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; pointer-events: none; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(13,13,13,0.6);
+  z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--cream); width: 100%; max-width: 640px;
+  border: var(--border); border-bottom: none;
+  max-height: 88vh; overflow-y: auto;
+  transform: translateY(60px); transition: transform 0.25s;
+  box-shadow: 0 -6px 0 var(--black);
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-drag { width: 48px; height: 5px; background: var(--black); margin: 10px auto 0; }
+.modal-head {
+  background: var(--black); color: var(--yellow);
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: var(--border); margin-top: 10px;
+}
+.modal-head h2 { font-family: var(--display); font-size: 22px; letter-spacing: 1px; }
+.modal-body { padding: 16px; }
+.modal-parcela {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border: var(--border); margin-bottom: 8px;
+  background: var(--white); box-shadow: 3px 3px 0 var(--black);
+  cursor: pointer; transition: transform 0.08s, box-shadow 0.08s;
+}
+.modal-parcela:active { transform: translate(3px,3px); box-shadow: none; }
+.check-box {
+  width: 26px; height: 26px; border: var(--border);
+  background: var(--white); display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900; flex-shrink: 0; transition: background 0.1s;
+}
+.check-box.checked { background: var(--green); color: var(--white); }
+
+/* ── SETUP ── */
+.setup-box { border: var(--border); background: var(--yellow); padding: 16px; box-shadow: var(--shadow-xl); margin-bottom: 20px; }
+.setup-box h3 { font-family: var(--display); font-size: 22px; letter-spacing: 1px; margin-bottom: 6px; }
+.setup-box p { font-family: var(--mono); font-size: 12px; margin-bottom: 14px; line-height: 1.6; }
+.input-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.text-input {
+  flex: 1; min-width: 180px; padding: 10px 12px; border: var(--border);
+  font-family: var(--mono); font-size: 13px;
+  background: var(--white); color: var(--black); outline: none;
+}
+.text-input:focus { background: var(--cream); }
+
+/* ── PROCESSING ── */
+.proc-card { border: var(--border); background: var(--white); padding: 32px 20px; text-align: center; box-shadow: var(--shadow-xl); }
+.proc-title { font-family: var(--display); font-size: 32px; letter-spacing: 1px; margin-bottom: 4px; }
+.proc-sub { font-family: var(--mono); font-size: 12px; color: #555; margin-bottom: 20px; }
+.spinner-brutal {
+  width: 48px; height: 48px; border: 4px solid var(--black);
+  border-top-color: var(--yellow); margin: 0 auto 20px;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.proc-steps { text-align: left; display: inline-block; }
+.p-step { font-family: var(--mono); font-size: 12px; padding: 5px 0; display: flex; align-items: center; gap: 8px; color: #888; }
+.p-step.active { color: var(--black); font-weight: 700; }
+.p-step.done { color: var(--green); }
+.p-step .dot { width: 8px; height: 8px; border: 2px solid currentColor; flex-shrink: 0; }
+.p-step.done .dot { background: var(--green); border-color: var(--green); }
+.p-step.active .dot { background: var(--yellow); border-color: var(--black); animation: pulse 0.8s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
+
+/* ── EMPTY ── */
+.empty { text-align: center; padding: 60px 20px; }
+.empty-big { font-family: var(--display); font-size: 80px; line-height: 1; margin-bottom: 12px; }
+.empty h3 { font-family: var(--display); font-size: 28px; letter-spacing: 1px; margin-bottom: 6px; }
+.empty p { font-family: var(--mono); font-size: 12px; color: #555; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--black); color: var(--yellow);
+  border: var(--border); padding: 12px 20px;
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+  z-index: 999; white-space: nowrap; box-shadow: var(--shadow-lg);
+  transition: transform 0.25s; letter-spacing: 0.5px;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.ok { background: var(--green); color: var(--white); }
+.toast.err { background: var(--red); color: var(--white); }
+
+/* ── MISC ── */
+.thick-rule { border: none; border-top: 3px solid var(--black); margin: 16px 0; }
+.section-title { font-family: var(--display); font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--black); }
+.install-banner {
+  display: none; border: var(--border); background: var(--blue); color: var(--white);
+  padding: 12px 16px; margin-bottom: 16px; box-shadow: var(--shadow);
+  align-items: center; justify-content: space-between; gap: 10px;
+}
+.install-banner.show { display: flex; }
+.install-text { font-family: var(--mono); font-size: 12px; font-weight: 700; flex: 1; }
+.sync-indicator {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border: 2px solid var(--black);
+}
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.sync-dot.loading { background: var(--yellow); animation: pulse 0.8s ease-in-out infinite; }
+.sync-dot.err { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">OS TRACKER</div>
+    <div class="logo-sub">Ordens de Serviço</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="sync-indicator" id="syncInd">
+      <div class="sync-dot loading" id="syncDot"></div>
+      <span id="syncTxt">CONECTANDO</span>
+    </div>
+    <div class="header-pills">
+      <div class="h-pill"><span id="statTotal">—</span>OS</div>
+      <div class="h-pill"><span id="statAberto">—</span>ABERTO</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="install-banner" id="installBanner">
+    <div class="install-text">Instale o app na sua tela inicial!</div>
+    <button class="btn btn-sm" id="installBtn" style="background:var(--white);color:var(--black)">INSTALAR</button>
+    <button class="btn btn-sm" onclick="document.getElementById('installBanner').classList.remove('show')" style="background:transparent;border-color:rgba(255,255,255,0.4);color:var(--white);box-shadow:none">✕</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabNova" onclick="showTab('nova')">📄 NOVA OS</button>
+    <button class="tab" id="tabPainel" onclick="showTab('painel')">📊 PAINEL</button>
+  </div>
+
+  <div id="viewNova"></div>
+  <div id="viewPainel" style="display:none"></div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-head">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:1px;opacity:0.7" id="mNum"></div>
+        <h2 id="mTitle"></h2>
+      </div>
+      <button class="btn btn-sm" style="background:var(--yellow);border-color:var(--yellow)" onclick="closeModal()">✕ FECHAR</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIGURAÇÃO SUPABASE — credenciais do projeto
+// ══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://qdgmqeykrhmjwcwfnjrr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkZ21xZXlrcmhtandjd2ZuanJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1Nzk0MjEsImV4cCI6MjA5MDE1NTQyMX0.pmi_m8bAGTs4mXF7ruzSsM_oGp-mGSNZ5xd73Lt8Dk';
+
+// ══ SUPABASE CLIENT ════════════════════════════════════
+let db = null;
+
+function initSupabase(url, key) {
+  try {
+    db = supabase.createClient(url, key);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+// ══ STATE ══════════════════════════════════════════════
+const S = {
+  ordens: [],       // cache local
+  pending: null,    // OS em revisão antes de salvar
+  modalOrdemId: null,
+};
+
+// ══ SYNC INDICATOR ═════════════════════════════════════
+function setSyncState(state) {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncTxt');
+  if (state === 'ok')      { dot.className='sync-dot';         txt.textContent='ONLINE'; }
+  if (state === 'loading') { dot.className='sync-dot loading'; txt.textContent='SINCRONIZANDO'; }
+  if (state === 'err')     { dot.className='sync-dot err';     txt.textContent='OFFLINE'; }
+  if (state === 'no-cfg')  { dot.className='sync-dot err';     txt.textContent='SEM CONFIG'; }
+}
+
+// ══ TOAST ══════════════════════════════════════════════
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ══ PWA INSTALL ════════════════════════════════════════
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('installBanner').classList.add('show');
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  document.getElementById('installBanner').classList.remove('show');
+  deferredPrompt = null;
+});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// ══ TABS ═══════════════════════════════════════════════
+function showTab(tab) {
+  document.getElementById('viewNova').style.display   = tab==='nova'   ? '' : 'none';
+  document.getElementById('viewPainel').style.display = tab==='painel' ? '' : 'none';
+  document.getElementById('tabNova').classList.toggle('active',   tab==='nova');
+  document.getElementById('tabPainel').classList.toggle('active', tab==='painel');
+  if (tab==='painel') renderPainel();
+  if (tab==='nova')   renderNova();
+}
+
+// ══ SETUP SCREEN ═══════════════════════════════════════
+function needsSetup() {
+  return false; // Supabase já configurado no código
+}
+
+function renderSetup() {
+  return ''; // Supabase já configurado
+}
+
+function renderApiKeySetup() {
+  if (localStorage.getItem('ak')) return '';
+  return `
+    <div class="setup-box" style="background:var(--cream)">
+      <h3>🔑 CHAVE ANTHROPIC (IA)</h3>
+      <p>Para leitura automática das OS.<br><strong>console.anthropic.com → API Keys</strong></p>
+      <div class="input-row">
+        <input class="text-input" id="apiIn" type="password" placeholder="sk-ant-..." value="${localStorage.getItem('ak')||''}"/>
+        <button class="btn btn-black btn-sm" onclick="salvarApiKey()">SALVAR</button>
+      </div>
+    </div>`;
+}
+
+async function salvarConfig() {} // não utilizado — Supabase já configurado
+
+function salvarApiKey() {
+  const v = document.getElementById('apiIn').value.trim();
+  if (!v.startsWith('sk-')) { toast('CHAVE INVÁLIDA', 'err'); return; }
+  localStorage.setItem('ak', v);
+  renderNova();
+  toast('CHAVE SALVA ✓');
+}
+
+// ══ NOVA OS TAB ════════════════════════════════════════
+function renderNova() {
+  const el = document.getElementById('viewNova');
+  el.innerHTML = renderApiKeySetup() + `<div id="novaBody">${uploadHTML()}</div>`;
+}
+
+function uploadHTML() {
+  return `
+    <div class="upload-zone" id="dz"
+      ondragover="doDrag(event,true)" ondragleave="doDrag(event,false)" ondrop="doDrop(event)">
+      <input type="file" accept="image/*,.pdf" onchange="handleFile(this.files[0])"/>
+      <span class="upload-icon">📋</span>
+      <h2>ENVIAR ORDEM DE SERVIÇO</h2>
+      <p>FOTO OU PDF · ARRASTE OU TOQUE AQUI</p>
+    </div>
+    <div class="actions" style="margin-top:12px;justify-content:center">
+      <button class="btn btn-black" onclick="document.getElementById('cam').click()">📷 USAR CÂMERA</button>
+    </div>
+    <input type="file" id="cam" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this.files[0])"/>`;
+}
+
+function showConfigPanel() {} // não utilizado
+
+function doDrag(e, on) { e.preventDefault(); document.getElementById('dz')?.classList.toggle('drag', on); }
+function doDrop(e) { e.preventDefault(); doDrag(e, false); handleFile(e.dataTransfer.files[0]); }
+
+// ══ FILE → CLAUDE API ══════════════════════════════════
+async function handleFile(file) {
+  if (!file) return;
+  const ak = localStorage.getItem('ak') || '';
+  if (!ak || ak.length < 10) { toast('CONFIGURE A CHAVE ANTHROPIC', 'err'); return; }
+  if (!db) { toast('ERRO: SUPABASE NÃO CONECTADO', 'err'); return; }
+
+  const nb = document.getElementById('novaBody');
+  nb.innerHTML = `
+    <div class="proc-card">
+      <div class="spinner-brutal"></div>
+      <div class="proc-title">ANALISANDO OS</div>
+      <div class="proc-sub">${file.name}</div>
+      <div class="proc-steps">
+        <div class="p-step active" id="ps1"><span class="dot"></span>LENDO ARQUIVO</div>
+        <div class="p-step" id="ps2"><span class="dot"></span>ENVIANDO PARA IA</div>
+        <div class="p-step" id="ps3"><span class="dot"></span>EXTRAINDO DADOS</div>
+        <div class="p-step" id="ps4"><span class="dot"></span>CRIANDO PARCELAS</div>
+      </div>
+    </div>`;
+
+  const setStep = (i, done) => {
+    const el = document.getElementById('ps'+i); if(!el) return;
+    if (done) el.className='p-step done';
+    if (i<4 && done) { const nx=document.getElementById('ps'+(i+1)); if(nx) nx.className='p-step active'; }
+  };
+
+  try {
+    const b64 = await toB64(file);
+    setStep(1, true);
+
+    const isImg = file.type.startsWith('image/');
+    const mt = isImg ? file.type : 'application/pdf';
+
+    const prompt = `Você é um extrator de dados de Ordens de Serviço brasileiras. Analise este documento.
+Retorne SOMENTE um JSON válido, sem markdown, sem texto extra:
+{
+  "numero_os": "string ou null",
+  "data_emissao": "DD/MM/YYYY ou null",
+  "fornecedor": "nome empresa fornecedora",
+  "cnpj_fornecedor": "string ou null",
+  "comprador": "empresa compradora ou null",
+  "descricao_servico": "descrição resumida",
+  "valor_total": numero_float,
+  "condicao_pagamento": "texto exato",
+  "num_parcelas": numero_inteiro,
+  "data_entrega": "DD/MM/YYYY ou null"
+}
+REGRA num_parcelas: "4 PAGAMENTOS"=4, "50%SINAL/50%ENTREGA"=2, "À VISTA"=1, "3X"=3.`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ak,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role:'user', content:[
+          { type: isImg?'image':'document', source:{ type:'base64', media_type:mt, data:b64 } },
+          { type:'text', text:prompt }
+        ]}]
+      })
+    });
+
+    if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'Erro API Anthropic'); }
+    setStep(2, true); setStep(3, false);
+
+    const data = await res.json();
+    const raw = data.content.map(c=>c.text||'').join('');
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    setStep(3, true); setStep(4, false);
+
+    S.pending = { ...parsed, arquivo: file.name, parcelas: gerarParcelas(parsed) };
+    setStep(4, true);
+    setTimeout(() => renderPreview(), 300);
+
+  } catch(err) {
+    nb.innerHTML = `
+      <div class="proc-card">
+        <div style="font-family:var(--display);font-size:48px">⚠</div>
+        <div class="proc-title">ERRO</div>
+        <div class="proc-sub" style="margin-bottom:20px">${err.message}</div>
+        <button class="btn btn-black" onclick="renderNova()">TENTAR NOVAMENTE</button>
+      </div>`;
+  }
+}
+
+function gerarParcelas(d) {
+  const n = Math.max(1, parseInt(d.num_parcelas)||1);
+  const total = parseFloat(d.valor_total)||0;
+  const vParcela = total / n;
+  const hoje = new Date();
+  const cond = (d.condicao_pagamento||'').toLowerCase();
+  return Array.from({length:n}, (_,i) => {
+    let label, venc;
+    if (n===2 && (cond.includes('sinal')||cond.includes('entrega'))) {
+      label = i===0 ? '50% — SINAL' : '50% — ENTREGA';
+      venc  = i===0 ? fmtDate(hoje) : (d.data_entrega||fmtDate(addDays(hoje,30)));
+    } else if (n===1) {
+      label = 'PAGAMENTO ÚNICO';
+      venc  = d.data_entrega||fmtDate(addDays(hoje,30));
+    } else {
+      label = `PARCELA ${i+1}/${n}`;
+      venc  = fmtDate(addDays(hoje, 30*(i+1)));
+    }
+    return { numero: i+1, label, valor: vParcela, vencimento: venc, pago: false };
+  });
+}
+
+function renderPreview() {
+  const r = S.pending;
+  document.getElementById('novaBody').innerHTML = `
+    <div class="card">
+      <div class="card-header">✓ OS DETECTADA <span style="font-family:var(--mono);font-size:11px;font-weight:400">${r.arquivo}</span></div>
+      <div class="card-body">
+        <div class="field-grid">
+          <div class="field"><div class="field-label">Número OS</div><div class="field-value">${r.numero_os||'—'}</div></div>
+          <div class="field"><div class="field-label">Data emissão</div><div class="field-value">${r.data_emissao||'—'}</div></div>
+          <div class="field" style="grid-column:1/-1"><div class="field-label">Fornecedor</div><div class="field-value">${r.fornecedor||'—'}</div></div>
+          <div class="field"><div class="field-label">CNPJ</div><div class="field-value">${r.cnpj_fornecedor||'—'}</div></div>
+          <div class="field"><div class="field-label">Valor total</div><div class="field-value big">${moeda(r.valor_total)}</div></div>
+          <div class="field" style="grid-column:1/-1"><div class="field-label">Serviço</div><div class="field-value">${r.descricao_servico||'—'}</div></div>
+          <div class="field" style="grid-column:1/-1"><div class="field-label">Condição de pagamento</div><div class="field-value">${r.condicao_pagamento||'—'}</div></div>
+        </div>
+        <hr class="thick-rule"/>
+        <div class="section-title">${r.parcelas.length}X PARCELAS GERADAS</div>
+        ${r.parcelas.map(p=>`
+          <div class="parcela-row">
+            <div class="parcela-num">${String(p.numero).padStart(2,'0')}</div>
+            <div class="parcela-info">
+              <div class="parcela-valor">${moeda(p.valor)}</div>
+              <div class="parcela-desc">${p.label} · VENC. ${p.vencimento}</div>
+            </div>
+            <span class="badge badge-pend">PENDENTE</span>
+          </div>`).join('')}
+        <div class="actions">
+          <button class="btn btn-green" id="btnSalvar" onclick="salvarOS()">✓ SALVAR NO SUPABASE</button>
+          <button class="btn" onclick="renderNova()">CANCELAR</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ══ SUPABASE — SALVAR OS ═══════════════════════════════
+async function salvarOS() {
+  if (!S.pending || !db) return;
+  const btn = document.getElementById('btnSalvar');
+  btn.disabled = true; btn.textContent = 'SALVANDO...';
+  setSyncState('loading');
+
+  try {
+    const r = S.pending;
+    // 1. Inserir ordem
+    const { data: ordem, error: e1 } = await db
+      .from('ordens')
+      .insert({
+        numero_os: r.numero_os || null,
+        data_emissao: r.data_emissao || null,
+        fornecedor: r.fornecedor || 'SEM NOME',
+        cnpj_fornecedor: r.cnpj_fornecedor || null,
+        comprador: r.comprador || null,
+        descricao_servico: r.descricao_servico || null,
+        valor_total: parseFloat(r.valor_total) || 0,
+        condicao_pagamento: r.condicao_pagamento || null,
+        num_parcelas: r.parcelas.length,
+        data_entrega: r.data_entrega || null,
+        arquivo: r.arquivo,
+      })
+      .select()
+      .single();
+
+    if (e1) throw new Error(e1.message);
+
+    // 2. Inserir parcelas
+    const parcRows = r.parcelas.map(p => ({
+      ordem_id: ordem.id,
+      numero: p.numero,
+      label: p.label,
+      valor: p.valor,
+      vencimento: p.vencimento,
+      pago: false,
+    }));
+    const { error: e2 } = await db.from('parcelas').insert(parcRows);
+    if (e2) throw new Error(e2.message);
+
+    await carregarOrdens();
+    S.pending = null;
+    setSyncState('ok');
+    toast('OS SALVA NO SUPABASE ✓');
+    showTab('painel');
+
+  } catch(err) {
+    setSyncState('err');
+    toast('ERRO AO SALVAR: ' + err.message, 'err');
+    btn.disabled = false; btn.textContent = '✓ SALVAR NO SUPABASE';
+  }
+}
+
+// ══ SUPABASE — CARREGAR ════════════════════════════════
+async function carregarOrdens() {
+  if (!db) { setSyncState('no-cfg'); return; }
+  setSyncState('loading');
+  try {
+    const { data, error } = await db
+      .from('ordens')
+      .select('*, parcelas(*)')
+      .order('criado_em', { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    S.ordens = data || [];
+    updateStats();
+    setSyncState('ok');
+  } catch(err) {
+    setSyncState('err');
+    console.error('Erro ao carregar:', err);
+  }
+}
+
+// ══ PAINEL ═════════════════════════════════════════════
+function renderPainel() {
+  const el = document.getElementById('viewPainel');
+  const all = S.ordens;
+  const allParc = all.flatMap(o => o.parcelas||[]);
+  const valorAberto = allParc.filter(p=>!p.pago).reduce((s,p)=>s+parseFloat(p.valor),0);
+  const qtdPagas = allParc.filter(p=>p.pago).length;
+
+  el.innerHTML = `
+    <div class="summary-grid">
+      <div class="summary-card"><div class="s-label">Total OS</div><div class="s-value">${all.length}</div></div>
+      <div class="summary-card"><div class="s-label">Em aberto</div><div class="s-value" style="font-size:${valorAberto>9999?'16px':'20px'}">${moeda(valorAberto)}</div></div>
+      <div class="summary-card"><div class="s-label">Parcelas pagas</div><div class="s-value">${qtdPagas}/${allParc.length}</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-family:var(--display);font-size:22px;letter-spacing:1px">ORDENS CADASTRADAS</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="carregarOrdens().then(renderPainel)">↻ SYNC</button>
+        <button class="btn btn-yellow btn-sm" onclick="showTab('nova')">+ NOVA</button>
+      </div>
+    </div>
+    ${all.length===0 ? `
+      <div class="empty">
+        <div class="empty-big">📋</div>
+        <h3>NENHUMA OS</h3>
+        <p>Fotografe uma ordem de serviço para começar</p>
+      </div>` : `
+      <div class="search-wrap">
+        <span class="search-ico">🔍</span>
+        <input class="search-input" placeholder="BUSCAR FORNECEDOR, NÚMERO..." oninput="filtrar(this.value)"/>
+      </div>
+      <div id="listaOS">${listaHTML(all)}</div>`}`;
+}
+
+function listaHTML(ordens) {
+  return ordens.map(o => {
+    const pp = o.parcelas||[];
+    const late = pp.some(p=>!p.pago && atrasado(p.vencimento));
+    const allPaid = pp.length>0 && pp.every(p=>p.pago);
+    const cls = late?'late':allPaid?'paid':'';
+    return `
+      <div class="os-card" onclick="abrirModal(${o.id})">
+        <div class="os-card-stripe ${cls}"></div>
+        <div class="os-card-inner">
+          <div class="os-card-top">
+            <div>
+              <div class="os-num">OS ${o.numero_os||('#'+o.id)}</div>
+              <div class="os-name">${(o.fornecedor||'FORNECEDOR').toUpperCase()}</div>
+              <div class="os-desc-text">${(o.descricao_servico||'').slice(0,55)}${(o.descricao_servico||'').length>55?'…':''}</div>
+            </div>
+            <div>
+              <div class="os-valor-big">${moeda(o.valor_total)}</div>
+              <div style="font-family:var(--mono);font-size:10px;color:#555;text-align:right;margin-top:2px">${o.data_emissao||''}</div>
+            </div>
+          </div>
+          <div class="os-card-bottom">
+            <div class="pills-row">
+              ${pp.map(p=>`<div class="pill ${p.pago?'paid':atrasado(p.vencimento)?'late':''}"></div>`).join('')}
+              <span class="pill-label">${pp.filter(p=>p.pago).length}/${pp.length} PAGAS</span>
+            </div>
+            <span class="badge ${late?'badge-late':allPaid?'badge-paid':'badge-pend'}">${late?'ATRASADA':allPaid?'QUITADA':'ABERTA'}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filtrar(q) {
+  const low = q.toUpperCase();
+  const f = S.ordens.filter(o =>
+    (o.fornecedor||'').toUpperCase().includes(low)||
+    (o.numero_os||'').includes(low)||
+    (o.descricao_servico||'').toUpperCase().includes(low)
+  );
+  document.getElementById('listaOS').innerHTML = listaHTML(f);
+}
+
+// ══ MODAL ══════════════════════════════════════════════
+function abrirModal(id) {
+  const o = S.ordens.find(x=>x.id===id); if(!o) return;
+  S.modalOrdemId = id;
+  document.getElementById('mNum').textContent = `OS ${o.numero_os||id}`;
+  document.getElementById('mTitle').textContent = (o.fornecedor||'FORNECEDOR').toUpperCase();
+  renderModalBody(o);
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function renderModalBody(o) {
+  document.getElementById('mBody').innerHTML = `
+    <div class="field-grid" style="margin-bottom:14px">
+      <div class="field"><div class="field-label">Valor total</div><div class="field-value big">${moeda(o.valor_total)}</div></div>
+      <div class="field"><div class="field-label">CNPJ</div><div class="field-value">${o.cnpj_fornecedor||'—'}</div></div>
+      <div class="field" style="grid-column:1/-1"><div class="field-label">Condição</div><div class="field-value">${o.condicao_pagamento||'—'}</div></div>
+      <div class="field" style="grid-column:1/-1"><div class="field-label">Serviço</div><div class="field-value">${o.descricao_servico||'—'}</div></div>
+    </div>
+    <hr class="thick-rule"/>
+    <div class="section-title">PARCELAS — toque para marcar paga</div>
+    ${(o.parcelas||[]).sort((a,b)=>a.numero-b.numero).map(p=>`
+      <div class="modal-parcela" onclick="toggleParcela(${o.id},${p.id})">
+        <div class="check-box ${p.pago?'checked':''}">${p.pago?'✓':''}</div>
+        <div style="flex:1">
+          <div style="font-family:var(--mono);font-size:15px;font-weight:700">${moeda(p.valor)}</div>
+          <div style="font-family:var(--mono);font-size:11px;color:#555;margin-top:2px">${p.label} · VENC. ${p.vencimento}</div>
+        </div>
+        <span class="badge ${p.pago?'badge-paid':atrasado(p.vencimento)?'badge-late':'badge-pend'}">
+          ${p.pago?'PAGA':atrasado(p.vencimento)?'ATRASADA':'PENDENTE'}
+        </span>
+      </div>`).join('')}
+    <hr class="thick-rule"/>
+    <div class="actions">
+      <button class="btn btn-sm" onclick="exportCSV(${o.id})">⬇ EXPORTAR CSV</button>
+      <button class="btn btn-red btn-sm" onclick="excluir(${o.id})">✕ EXCLUIR OS</button>
+    </div>`;
+}
+
+function handleOverlayClick(e) { if(e.target.id==='modalOverlay') closeModal(); }
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  S.modalOrdemId = null;
+  if (document.getElementById('viewPainel').style.display!=='none') renderPainel();
+}
+
+// ══ SUPABASE — TOGGLE PARCELA ══════════════════════════
+async function toggleParcela(osId, parcelaId) {
+  const o = S.ordens.find(x=>x.id===osId);
+  const p = o?.parcelas?.find(x=>x.id===parcelaId);
+  if (!p || !db) return;
+
+  const novoPago = !p.pago;
+  setSyncState('loading');
+
+  const { error } = await db
+    .from('parcelas')
+    .update({ pago: novoPago, pago_em: novoPago ? new Date().toISOString() : null })
+    .eq('id', parcelaId);
+
+  if (error) { toast('ERRO AO SALVAR', 'err'); setSyncState('err'); return; }
+
+  p.pago = novoPago;
+  p.pago_em = novoPago ? new Date().toISOString() : null;
+  updateStats(); setSyncState('ok');
+  renderModalBody(o);
+  toast(novoPago ? '✓ PARCELA PAGA' : 'PARCELA DESMARCADA');
+}
+
+// ══ SUPABASE — EXCLUIR OS ══════════════════════════════
+async function excluir(id) {
+  if (!confirm('Excluir esta OS e todas as parcelas?')) return;
+  setSyncState('loading');
+  const { error } = await db.from('ordens').delete().eq('id', id);
+  if (error) { toast('ERRO AO EXCLUIR', 'err'); setSyncState('err'); return; }
+  S.ordens = S.ordens.filter(o=>o.id!==id);
+  updateStats(); setSyncState('ok');
+  closeModal(); toast('OS EXCLUÍDA');
+}
+
+// ══ EXPORT CSV ═════════════════════════════════════════
+function exportCSV(id) {
+  const o = S.ordens.find(x=>x.id===id); if(!o) return;
+  const rows = [
+    ['Nº OS','Fornecedor','CNPJ','Serviço','Valor Total','Condição','Parcela','Valor','Vencimento','Status','Pago Em'],
+    ...(o.parcelas||[]).sort((a,b)=>a.numero-b.numero).map(p=>[
+      o.numero_os||o.id, o.fornecedor, o.cnpj_fornecedor||'',
+      o.descricao_servico||'', o.valor_total, o.condicao_pagamento||'',
+      p.label, parseFloat(p.valor).toFixed(2), p.vencimento,
+      p.pago?'PAGA':'PENDENTE', p.pago_em ? new Date(p.pago_em).toLocaleDateString('pt-BR') : ''
+    ])
+  ];
+  const csv = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'),{
+    href:'data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv),
+    download:`OS_${o.numero_os||o.id}.csv`
+  });
+  a.click(); toast('CSV EXPORTADO ✓');
+}
+
+// ══ UTILS ══════════════════════════════════════════════
+function moeda(v) {
+  return 'R$ '+(parseFloat(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtDate(d) {
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function atrasado(v) {
+  if(!v) return false;
+  const [d,m,y]=v.split('/');
+  return new Date(+y,+m-1,+d)<new Date();
+}
+function toB64(file) {
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file); });
+}
+function updateStats() {
+  document.getElementById('statTotal').textContent = S.ordens.length;
+  const ab = S.ordens.flatMap(o=>o.parcelas||[]).filter(p=>!p.pago).length;
+  document.getElementById('statAberto').textContent = ab;
+}
+
+// ══ INIT ═══════════════════════════════════════════════
+(async () => {
+  if (initSupabase(SUPABASE_URL, SUPABASE_KEY)) {
+    await carregarOrdens();
+  } else {
+    setSyncState('err');
+  }
+  renderNova();
+  updateStats();
+})();
+</script>
+</body>
+</html>
