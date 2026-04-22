@@ -1,6 +1,6 @@
 {
-  "name": "OS Tracker",
-  "short_name": "OS Tracker",
+  "name": "GT RH",
+  "short_name": "GT RH",
   "description": "Controle de Ordens de Serviço com IA + Supabase",
   "start_url": "/",
   "scope": "/",

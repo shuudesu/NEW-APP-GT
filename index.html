@@ -7,8 +7,8 @@
 <meta name="description" content="Controle de Ordens de Serviço"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<meta name="apple-mobile-web-app-title" content="OS Tracker"/>
-<title>OS TRACKER</title>
+<meta name="apple-mobile-web-app-title" content="GT RH"/>
+<title>GT RH</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -303,7 +303,7 @@ main { padding: 16px; max-width: 860px; margin: 0 auto; }
 
 <header>
   <div>
-    <div class="logo">OS TRACKER</div>
+    <div class="logo">GT RH</div>
     <div class="logo-sub">Ordens de Serviço</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
@@ -605,15 +605,21 @@ function renderPreview() {
           <div class="field" style="grid-column:1/-1"><div class="field-label">Condição de pagamento</div><div class="field-value">${r.condicao_pagamento||'—'}</div></div>
         </div>
         <hr class="thick-rule"/>
-        <div class="section-title">${r.parcelas.length}X PARCELAS GERADAS</div>
-        ${r.parcelas.map(p=>`
-          <div class="parcela-row">
+        <div class="section-title">${r.parcelas.length}X PARCELAS — CONFIRME OS VENCIMENTOS</div>
+        ${r.parcelas.map((p,i)=>`
+          <div class="parcela-row" style="flex-wrap:wrap;gap:8px">
             <div class="parcela-num">${String(p.numero).padStart(2,'0')}</div>
             <div class="parcela-info">
               <div class="parcela-valor">${moeda(p.valor)}</div>
-              <div class="parcela-desc">${p.label} · VENC. ${p.vencimento}</div>
+              <div class="parcela-desc">${p.label}</div>
             </div>
-            <span class="badge badge-pend">PENDENTE</span>
+            <div style="display:flex;align-items:center;gap:6px;width:100%;padding-left:44px">
+              <span style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555">Vencimento:</span>
+              <input type="date" class="date-input" id="venc_${i}"
+                value="${isoDate(p.vencimento)}"
+                onchange="S.pending.parcelas[${i}].vencimento = brDate(this.value)"
+                style="font-family:var(--mono);font-size:13px;font-weight:700;border:2px solid var(--black);padding:4px 8px;background:var(--yellow);outline:none;cursor:pointer"/>
+            </div>
           </div>`).join('')}
         <div class="actions">
           <button class="btn btn-green" id="btnSalvar" onclick="salvarOS()">✓ SALVAR NO SUPABASE</button>
@@ -795,17 +801,30 @@ function renderModalBody(o) {
       <div class="field" style="grid-column:1/-1"><div class="field-label">Serviço</div><div class="field-value">${o.descricao_servico||'—'}</div></div>
     </div>
     <hr class="thick-rule"/>
-    <div class="section-title">PARCELAS — toque para marcar paga</div>
+    <div class="section-title">PARCELAS — marque e informe a data do pagamento</div>
     ${(o.parcelas||[]).sort((a,b)=>a.numero-b.numero).map(p=>`
-      <div class="modal-parcela" onclick="toggleParcela(${o.id},${p.id})">
-        <div class="check-box ${p.pago?'checked':''}">${p.pago?'✓':''}</div>
-        <div style="flex:1">
-          <div style="font-family:var(--mono);font-size:15px;font-weight:700">${moeda(p.valor)}</div>
-          <div style="font-family:var(--mono);font-size:11px;color:#555;margin-top:2px">${p.label} · VENC. ${p.vencimento}</div>
+      <div class="modal-parcela" style="flex-wrap:wrap;gap:8px;cursor:default">
+        <div style="display:flex;align-items:center;gap:12px;width:100%">
+          <div class="check-box ${p.pago?'checked':''}" onclick="toggleParcela(${o.id},${p.id})" style="cursor:pointer;flex-shrink:0">${p.pago?'✓':''}</div>
+          <div style="flex:1">
+            <div style="font-family:var(--mono);font-size:15px;font-weight:700">${moeda(p.valor)}</div>
+            <div style="font-family:var(--mono);font-size:11px;color:#555;margin-top:2px">${p.label} · VENC. ${p.vencimento}</div>
+          </div>
+          <span class="badge ${p.pago?'badge-paid':atrasado(p.vencimento)?'badge-late':'badge-pend'}">
+            ${p.pago?'PAGA':atrasado(p.vencimento)?'ATRASADA':'PENDENTE'}
+          </span>
         </div>
-        <span class="badge ${p.pago?'badge-paid':atrasado(p.vencimento)?'badge-late':'badge-pend'}">
-          ${p.pago?'PAGA':atrasado(p.vencimento)?'ATRASADA':'PENDENTE'}
-        </span>
+        <div style="width:100%;padding-left:38px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555">
+            ${p.pago ? 'Pago em:' : 'Data do pagamento:'}
+          </span>
+          <input type="date" id="pgto_${p.id}"
+            value="${p.pago_em ? isoDate(new Date(p.pago_em).toLocaleDateString('pt-BR')) : ''}"
+            ${p.pago ? '' : ''}
+            onchange="salvarDataPagamento(${o.id},${p.id},this.value)"
+            style="font-family:var(--mono);font-size:13px;font-weight:700;border:2px solid var(--black);padding:4px 8px;background:${p.pago?'var(--green)':'var(--yellow)'};color:${p.pago?'var(--white)':'var(--black)'};outline:none;cursor:pointer"/>
+          ${p.pago && p.pago_em ? `<span style="font-family:var(--mono);font-size:11px;color:#555">${new Date(p.pago_em).toLocaleDateString('pt-BR')}</span>` : ''}
+        </div>
       </div>`).join('')}
     <hr class="thick-rule"/>
     <div class="actions">
@@ -830,18 +849,46 @@ async function toggleParcela(osId, parcelaId) {
   const novoPago = !p.pago;
   setSyncState('loading');
 
+  // Usa a data escolhida no campo, ou hoje como fallback
+  let pagoEm = null;
+  if (novoPago) {
+    const inputEl = document.getElementById('pgto_'+parcelaId);
+    const inputVal = inputEl ? inputEl.value : '';
+    pagoEm = inputVal ? new Date(inputVal+'T12:00:00').toISOString() : new Date().toISOString();
+  }
+
   const { error } = await db
     .from('parcelas')
-    .update({ pago: novoPago, pago_em: novoPago ? new Date().toISOString() : null })
+    .update({ pago: novoPago, pago_em: pagoEm })
     .eq('id', parcelaId);
 
   if (error) { toast('ERRO AO SALVAR', 'err'); setSyncState('err'); return; }
 
   p.pago = novoPago;
-  p.pago_em = novoPago ? new Date().toISOString() : null;
+  p.pago_em = pagoEm;
   updateStats(); setSyncState('ok');
   renderModalBody(o);
   toast(novoPago ? '✓ PARCELA PAGA' : 'PARCELA DESMARCADA');
+}
+
+// ══ SUPABASE — SALVAR DATA DE PAGAMENTO ════════════════
+async function salvarDataPagamento(osId, parcelaId, isoVal) {
+  if (!isoVal || !db) return;
+  const o = S.ordens.find(x=>x.id===osId);
+  const p = o?.parcelas?.find(x=>x.id===parcelaId);
+  if (!p || !p.pago) return; // só salva se já estiver marcada como paga
+
+  const pagoEm = new Date(isoVal+'T12:00:00').toISOString();
+  setSyncState('loading');
+  const { error } = await db
+    .from('parcelas')
+    .update({ pago_em: pagoEm })
+    .eq('id', parcelaId);
+
+  if (error) { toast('ERRO AO SALVAR DATA', 'err'); setSyncState('err'); return; }
+  p.pago_em = pagoEm;
+  setSyncState('ok');
+  toast('DATA ATUALIZADA ✓');
 }
 
 // ══ SUPABASE — EXCLUIR OS ══════════════════════════════
@@ -895,6 +942,19 @@ function updateStats() {
   document.getElementById('statTotal').textContent = S.ordens.length;
   const ab = S.ordens.flatMap(o=>o.parcelas||[]).filter(p=>!p.pago).length;
   document.getElementById('statAberto').textContent = ab;
+}
+// DD/MM/YYYY → YYYY-MM-DD (para input type=date)
+function isoDate(br) {
+  if (!br) return '';
+  const [d,m,y] = br.split('/');
+  if (!d||!m||!y) return '';
+  return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+}
+// YYYY-MM-DD → DD/MM/YYYY
+function brDate(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
 }
 
 // ══ INIT ═══════════════════════════════════════════════
